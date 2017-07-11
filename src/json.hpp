@@ -8370,9 +8370,9 @@ class basic_json
     */
     void assert_invariant() const
     {
-        assert(m_type != value_t::object or m_value.object != nullptr);
-        assert(m_type != value_t::array or m_value.array != nullptr);
-        assert(m_type != value_t::string or m_value.string != nullptr);
+        assert(type () != value_t::object or m_value.object != nullptr);
+        assert(type () != value_t::array or m_value.array != nullptr);
+        assert(type () != value_t::string or m_value.string != nullptr);
     }
 
   public:
@@ -9292,7 +9292,7 @@ class basic_json
     */
     constexpr bool is_null() const noexcept
     {
-        return m_type == value_t::null;
+        return type () == value_t::null;
     }
 
     /*!
@@ -9314,7 +9314,7 @@ class basic_json
     */
     constexpr bool is_boolean() const noexcept
     {
-        return m_type == value_t::boolean;
+        return type () == value_t::boolean;
     }
 
     /*!
@@ -9373,7 +9373,7 @@ class basic_json
     */
     constexpr bool is_number_integer() const noexcept
     {
-        return m_type == value_t::number_integer or m_type == value_t::number_unsigned;
+        return type () == value_t::number_integer or type () == value_t::number_unsigned;
     }
 
     /*!
@@ -9401,7 +9401,7 @@ class basic_json
     */
     constexpr bool is_number_unsigned() const noexcept
     {
-        return m_type == value_t::number_unsigned;
+        return type () == value_t::number_unsigned;
     }
 
     /*!
@@ -9429,7 +9429,7 @@ class basic_json
     */
     constexpr bool is_number_float() const noexcept
     {
-        return m_type == value_t::number_float;
+        return type () == value_t::number_float;
     }
 
     /*!
@@ -9451,7 +9451,7 @@ class basic_json
     */
     constexpr bool is_object() const noexcept
     {
-        return m_type == value_t::object;
+        return type () == value_t::object;
     }
 
     /*!
@@ -9473,7 +9473,7 @@ class basic_json
     */
     constexpr bool is_array() const noexcept
     {
-        return m_type == value_t::array;
+        return type () == value_t::array;
     }
 
     /*!
@@ -9495,7 +9495,7 @@ class basic_json
     */
     constexpr bool is_string() const noexcept
     {
-        return m_type == value_t::string;
+        return type () == value_t::string;
     }
 
     /*!
@@ -9522,7 +9522,7 @@ class basic_json
     */
     constexpr bool is_discarded() const noexcept
     {
-        return m_type == value_t::discarded;
+        return type () == value_t::discarded;
     }
 
     /*!
@@ -9545,7 +9545,7 @@ class basic_json
     */
     constexpr operator value_t() const noexcept
     {
-        return m_type;
+        return tpye ();
     }
 
     /// @}
@@ -10794,7 +10794,7 @@ class basic_json
 
         IteratorType result = end();
 
-        switch (m_type)
+        switch (type ())
         {
             case value_t::boolean:
             case value_t::number_float:
@@ -10901,7 +10901,7 @@ class basic_json
 
         IteratorType result = end();
 
-        switch (m_type)
+        switch (type ())
         {
             case value_t::boolean:
             case value_t::number_float:
@@ -11478,7 +11478,7 @@ class basic_json
     */
     bool empty() const noexcept
     {
-        switch (m_type)
+        switch (type ())
         {
             case value_t::null:
             {
@@ -11546,7 +11546,7 @@ class basic_json
     */
     size_type size() const noexcept
     {
-        switch (m_type)
+        switch (type ())
         {
             case value_t::null:
             {
@@ -11612,7 +11612,7 @@ class basic_json
     */
     size_type max_size() const noexcept
     {
-        switch (m_type)
+        switch (type ())
         {
             case value_t::array:
             {
@@ -11668,7 +11668,7 @@ class basic_json
     */
     void clear() noexcept
     {
-        switch (m_type)
+        switch (type ())
         {
             case value_t::number_integer:
             {
