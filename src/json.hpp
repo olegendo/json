@@ -7467,6 +7467,13 @@ public:
   virtual value_t type() const noexcept override { return value_t::null; }
 };
 
+class json_value_disarded : json_value_null
+{
+public:
+  virtual const char* type_name() const noexcept { return "discarded"; }
+  virtual value_t type() const noexcept override { return value_t::discarded; }
+};
+
 template <typename T> class json_value_primitive : json_value_base
 {
 public:
