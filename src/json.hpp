@@ -9545,7 +9545,7 @@ class basic_json
     */
     constexpr operator value_t() const noexcept
     {
-        return tpye ();
+        return type ();
     }
 
     /// @}
