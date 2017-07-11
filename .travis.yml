@@ -183,17 +183,17 @@ matrix:
 
   - os: linux
     compiler: gcc
-    env:
-      - COMPILER=g++-6
-      - CXXFLAGS=-std=c++1z
+    env: COMPILER=g++-7
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: g++-6
+        packages: g++-7
 
   - os: linux
     compiler: gcc
-    env: COMPILER=g++-7
+    env:
+      - COMPILER=g++-7
+      - CXXFLAGS=-std=c++17
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
