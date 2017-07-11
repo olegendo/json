@@ -7455,7 +7455,7 @@ struct json_value_base
   virtual value_t type() const noexcept = 0;
 };
 
-class json_value_null : json_value_base
+class json_value_null : public json_value_base
 {
 public:
   virtual bool empty() const noexcept override { return true; }
@@ -7467,14 +7467,14 @@ public:
   virtual value_t type() const noexcept override { return value_t::null; }
 };
 
-class json_value_disarded : json_value_null
+class json_value_disarded : public json_value_null
 {
 public:
   virtual const char* type_name() const noexcept { return "discarded"; }
   virtual value_t type() const noexcept override { return value_t::discarded; }
 };
 
-template <typename T> class json_value_primitive : json_value_base
+template <typename T> class json_value_primitive : public json_value_base
 {
 public:
   using value_type = T;
@@ -7511,7 +7511,7 @@ using json_value_number_integer = json_value_primitive<int64_t>;
 using json_value_number_unsigned = json_value_primitive<uint64_t>;
 using json_value_number_float = json_value_primitive<double>;
 
-class json_value_string : json_value_base
+class json_value_string : public json_value_base
 {
 public:
   using value_type = std::string;
@@ -7534,10 +7534,11 @@ private:
   value_type m_value;
 };
 
-class json_value_array : json_value_base
+template<typename ArrayType>
+class json_value_array : public json_value_base
 {
 public:
-  using value_type = std::vector<basic_json>;
+  using value_type = ArrayType;
 
   explicit json_value_array (const value_type& val) : m_value (val) { }
   explicit json_value_array (value_type&& val) : m_value (std::move (val)) { }
@@ -7555,10 +7556,11 @@ private:
   value_type m_value;
 };
 
-class json_value_object : json_value_base
+template<typename ObjectType>
+class json_value_object : public json_value_base
 {
 public:
-  using value_type = std::map<std::string, basic_json>;
+  using value_type = ObjectType;
 
   explicit json_value_object (const value_type& val) : m_value (val) { }
   explicit json_value_object (value_type&& val) : m_value (std::move (val)) { }
