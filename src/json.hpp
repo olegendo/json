@@ -7437,6 +7437,138 @@ Format](http://rfc7159.net/rfc7159)
 
 @nosubgrouping
 */
+
+struct json_value_base
+{
+  using size_type = std::size_t;
+  using value_t = detail::value_t;
+
+  virtual bool empty() const noexcept = 0;
+  virtual size_type size() const noexcept = 0;
+  virtual size_type max_size() const noexcept = 0;
+  virtual void clear() noexcept = 0;
+  virtual const char* type_name() const noexcept = 0;
+  virtual ~json_value_base () { }
+
+  // ideally, this should not be needed later on.
+  // the type can be checked by typeid and std::type_index.
+  virtual value_t type() const noexcept = 0;
+};
+
+class json_value_null : json_value_base
+{
+public:
+  virtual bool empty() const noexcept override { return true; }
+  virtual size_type size() const noexcept override { return 0; }
+  virtual size_type max_size() const noexcept override { return 0; }
+  virtual void clear() noexcept override { }
+  virtual const char* type_name() const noexcept { return "null"; }
+
+  virtual value_t type() const noexcept override { return value_t::null; }
+};
+
+template <typename T> class json_value_primitive : json_value_base
+{
+public:
+  using value_type = T;
+
+  explicit json_value_primitive (value_type val) noexcept : m_value (val) { }
+
+  virtual bool empty() const noexcept override { return false; }
+  virtual size_type size() const noexcept override { return 1; }
+  virtual size_type max_size() const noexcept override { return 1; }
+  virtual void clear() noexcept override { m_value = { }; }
+
+  virtual const char* type_name() const noexcept
+  {
+    return std::is_same<T, bool>::value ? "boolean" : "number";
+  }
+
+  virtual value_t type() const noexcept override
+  {
+    return std::is_same<value_type, bool>::value
+	   ? value_t::boolean
+	   : std::is_floating_point<value_type>::value
+	     ? value_t::number_float
+	     : std::is_unsigned<value_type>::value
+	       ? value_t::number_unsigned
+	       : value_t::number_integer;
+  }
+
+private:
+  value_type m_value = { };
+};
+
+using json_value_boolean = json_value_primitive<bool>;
+using json_value_number_integer = json_value_primitive<int64_t>;
+using json_value_number_unsigned = json_value_primitive<uint64_t>;
+using json_value_number_float = json_value_primitive<double>;
+
+class json_value_string : json_value_base
+{
+public:
+  using value_type = std::string;
+
+  explicit json_value_string (const std::string& val) : m_value (val) { }
+  explicit json_value_string (std::string&& val) : m_value (std::move (val)) { }
+  explicit json_value_string (const char* val) : m_value (val) { }
+  // explicit json_value_string (std::experimental::string_view ...
+  // explicit json_value_string (std::string_view ...
+
+  virtual bool empty() const noexcept override { return false; }
+  virtual size_type size() const noexcept override { return 1; }
+  virtual size_type max_size() const noexcept override { return 1; }
+  virtual void clear() noexcept override { m_value.clear (); }
+  virtual const char* type_name() const noexcept { return "string"; }
+
+  virtual value_t type() const noexcept override { return value_t::string; }
+
+private:
+  value_type m_value;
+};
+
+class json_value_array : json_value_base
+{
+public:
+  using value_type = std::vector<basic_json>;
+
+  explicit json_value_array (const value_type& val) : m_value (val) { }
+  explicit json_value_array (value_type&& val) : m_value (std::move (val)) { }
+  // ... other vector ctor variants ...
+
+  virtual bool empty() const noexcept override { return m_value.empty (); }
+  virtual size_type size() const noexcept override { return m_value.size (); }
+  virtual size_type max_size() const noexcept override { return m_value.max_size (); }
+  virtual void clear() noexcept override { m_value.clear (); }
+  virtual const char* type_name() const noexcept { return "array"; }
+
+  virtual value_t type() const noexcept override { return value_t::array; }
+
+private:
+  value_type m_value;
+};
+
+class json_value_object : json_value_base
+{
+public:
+  using value_type = std::map<std::string, basic_json>;
+
+  explicit json_value_object (const value_type& val) : m_value (val) { }
+  explicit json_value_object (value_type&& val) : m_value (std::move (val)) { }
+
+  virtual bool empty() const noexcept override { return m_value.empty (); }
+  virtual size_type size() const noexcept override { return m_value.size (); }
+  virtual size_type max_size() const noexcept override { return m_value.max_size (); }
+  virtual void clear() noexcept override { m_value.clear (); }
+  virtual const char* type_name() const noexcept { return "object"; }
+
+  virtual value_t type() const noexcept override { return value_t::object; }
+
+private:
+  value_type m_value;
+};
+
+
 NLOHMANN_BASIC_JSON_TPL_DECLARATION
 class basic_json
 {
