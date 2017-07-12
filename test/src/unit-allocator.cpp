@@ -141,7 +141,7 @@ TEST_CASE("controlled bad_alloc")
             {
                 next_construct_fails = false;
                 auto t = my_json::value_t::object;
-                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).object));
+//                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).object));
                 next_construct_fails = true;
                 CHECK_THROWS_AS(my_json::json_value(t), std::bad_alloc&);
                 next_construct_fails = false;
@@ -150,7 +150,7 @@ TEST_CASE("controlled bad_alloc")
             {
                 next_construct_fails = false;
                 auto t = my_json::value_t::array;
-                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).array));
+//                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).array));
                 next_construct_fails = true;
                 CHECK_THROWS_AS(my_json::json_value(t), std::bad_alloc&);
                 next_construct_fails = false;
@@ -159,7 +159,7 @@ TEST_CASE("controlled bad_alloc")
             {
                 next_construct_fails = false;
                 auto t = my_json::value_t::string;
-                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).string));
+//                CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(t).string));
                 next_construct_fails = true;
                 CHECK_THROWS_AS(my_json::json_value(t), std::bad_alloc&);
                 next_construct_fails = false;
@@ -170,7 +170,7 @@ TEST_CASE("controlled bad_alloc")
         {
             next_construct_fails = false;
             my_json::string_t v("foo");
-            CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(v).string));
+//            CHECK_NOTHROW(my_allocator_clean_up(my_json::json_value(v).string));
             next_construct_fails = true;
             CHECK_THROWS_AS(my_json::json_value(v), std::bad_alloc&);
             next_construct_fails = false;

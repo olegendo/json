@@ -571,7 +571,6 @@ struct external_constructor<value_t::boolean>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, typename BasicJsonType::boolean_t b) noexcept
     {
-        j.m_type = value_t::boolean;
         j.m_value = b;
         j.assert_invariant();
     }
@@ -583,7 +582,6 @@ struct external_constructor<value_t::string>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, const typename BasicJsonType::string_t& s)
     {
-        j.m_type = value_t::string;
         j.m_value = s;
         j.assert_invariant();
     }
@@ -595,7 +593,6 @@ struct external_constructor<value_t::number_float>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, typename BasicJsonType::number_float_t val) noexcept
     {
-        j.m_type = value_t::number_float;
         j.m_value = val;
         j.assert_invariant();
     }
@@ -607,7 +604,6 @@ struct external_constructor<value_t::number_unsigned>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, typename BasicJsonType::number_unsigned_t val) noexcept
     {
-        j.m_type = value_t::number_unsigned;
         j.m_value = val;
         j.assert_invariant();
     }
@@ -619,7 +615,6 @@ struct external_constructor<value_t::number_integer>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, typename BasicJsonType::number_integer_t val) noexcept
     {
-        j.m_type = value_t::number_integer;
         j.m_value = val;
         j.assert_invariant();
     }
@@ -631,7 +626,6 @@ struct external_constructor<value_t::array>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, const typename BasicJsonType::array_t& arr)
     {
-        j.m_type = value_t::array;
         j.m_value = arr;
         j.assert_invariant();
     }
@@ -644,15 +638,13 @@ struct external_constructor<value_t::array>
     {
         using std::begin;
         using std::end;
-        j.m_type = value_t::array;
-        j.m_value.array = j.template create<typename BasicJsonType::array_t>(begin(arr), end(arr));
+        j.m_value.array () = { begin(arr), end(arr) };
         j.assert_invariant();
     }
 
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, const std::vector<bool>& arr)
     {
-        j.m_type = value_t::array;
         j.m_value = value_t::array;
         j.m_value.array->reserve(arr.size());
         for (bool x : arr)
@@ -669,7 +661,6 @@ struct external_constructor<value_t::object>
     template<typename BasicJsonType>
     static void construct(BasicJsonType& j, const typename BasicJsonType::object_t& obj)
     {
-        j.m_type = value_t::object;
         j.m_value = obj;
         j.assert_invariant();
     }
@@ -683,8 +674,7 @@ struct external_constructor<value_t::object>
         using std::begin;
         using std::end;
 
-        j.m_type = value_t::object;
-        j.m_value.object = j.template create<typename BasicJsonType::object_t>(begin(obj), end(obj));
+        j.m_value.object () = { begin(obj), end(obj) };
         j.assert_invariant();
     }
 };
@@ -3184,7 +3174,6 @@ class parser
                                                 result)) != 0)))
                 {
                     // explicitly set result to object to cope with {}
-                    result.m_type = value_t::object;
                     result.m_value = value_t::object;
                 }
 
@@ -3264,7 +3253,6 @@ class parser
                                                 result)) != 0)))
                 {
                     // explicitly set result to object to cope with []
-                    result.m_type = value_t::array;
                     result.m_value = value_t::array;
                 }
 
@@ -3316,7 +3304,7 @@ class parser
 
             case token_type::literal_null:
             {
-                result.m_type = value_t::null;
+                result.m_value = value_t::null;
                 break;
             }
 
@@ -3328,39 +3316,34 @@ class parser
 
             case token_type::literal_true:
             {
-                result.m_type = value_t::boolean;
                 result.m_value = true;
                 break;
             }
 
             case token_type::literal_false:
             {
-                result.m_type = value_t::boolean;
                 result.m_value = false;
                 break;
             }
 
             case token_type::value_unsigned:
             {
-                result.m_type = value_t::number_unsigned;
                 result.m_value = m_lexer.get_number_unsigned();
                 break;
             }
 
             case token_type::value_integer:
             {
-                result.m_type = value_t::number_integer;
                 result.m_value = m_lexer.get_number_integer();
                 break;
             }
 
             case token_type::value_float:
             {
-                result.m_type = value_t::number_float;
                 result.m_value = m_lexer.get_number_float();
 
                 // throw in case of infinity or NAN
-                if (JSON_UNLIKELY(not std::isfinite(result.m_value.number_float)))
+                if (JSON_UNLIKELY(not std::isfinite(result.m_value.number_float ())))
                 {
                     JSON_THROW(out_of_range::create(406, "number overflow parsing '" +
                                                     m_lexer.get_token_string() +
@@ -3808,7 +3791,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -3871,17 +3854,17 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
-                m_it.object_iterator = m_object->m_value.object->begin();
+                m_it.object_iterator = const_cast<object_t&> (m_object->m_value.object ()).begin();
                 break;
             }
 
             case value_t::array:
             {
-                m_it.array_iterator = m_object->m_value.array->begin();
+                m_it.array_iterator = const_cast<array_t&> (m_object->m_value.array ()).begin();
                 break;
             }
 
@@ -3908,17 +3891,17 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
-                m_it.object_iterator = m_object->m_value.object->end();
+                m_it.object_iterator = const_cast<object_t&> (m_object->m_value.object ()).end();
                 break;
             }
 
             case value_t::array:
             {
-                m_it.array_iterator = m_object->m_value.array->end();
+                m_it.array_iterator = const_cast<array_t&> (m_object->m_value.array ()).end();
                 break;
             }
 
@@ -3939,17 +3922,17 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
-                assert(m_it.object_iterator != m_object->m_value.object->end());
+                assert(m_it.object_iterator != m_object->m_value.object ().end());
                 return m_it.object_iterator->second;
             }
 
             case value_t::array:
             {
-                assert(m_it.array_iterator != m_object->m_value.array->end());
+                assert(m_it.array_iterator != m_object->m_value.array ().end());
                 return *m_it.array_iterator;
             }
 
@@ -3978,17 +3961,17 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
-                assert(m_it.object_iterator != m_object->m_value.object->end());
+                assert(m_it.object_iterator != m_object->m_value.object ().end());
                 return &(m_it.object_iterator->second);
             }
 
             case value_t::array:
             {
-                assert(m_it.array_iterator != m_object->m_value.array->end());
+                assert(m_it.array_iterator != m_object->m_value.array ().end());
                 return &*m_it.array_iterator;
             }
 
@@ -4023,7 +4006,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4066,7 +4049,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4105,7 +4088,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
 
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4148,7 +4131,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
 
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4203,7 +4186,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4277,7 +4260,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -4305,7 +4288,7 @@ class iter_impl : public std::iterator<std::random_access_iterator_tag, BasicJso
     {
         assert(m_object != nullptr);
 
-        switch (m_object->m_type)
+        switch (m_object->type ())
         {
             case value_t::object:
             {
@@ -6426,11 +6409,11 @@ class serializer
               const unsigned int indent_step,
               const unsigned int current_indent = 0)
     {
-        switch (val.m_type)
+        switch (val.type ())
         {
             case value_t::object:
             {
-                if (val.m_value.object->empty())
+                if (val.m_value.object ().empty())
                 {
                     o->write_characters("{}", 2);
                     return;
@@ -6448,8 +6431,8 @@ class serializer
                     }
 
                     // first n-1 elements
-                    auto i = val.m_value.object->cbegin();
-                    for (size_t cnt = 0; cnt < val.m_value.object->size() - 1; ++cnt, ++i)
+                    auto i = val.m_value.object ().cbegin();
+                    for (size_t cnt = 0; cnt < val.m_value.object ().size() - 1; ++cnt, ++i)
                     {
                         o->write_characters(indent_string.c_str(), new_indent);
                         o->write_character('\"');
@@ -6460,7 +6443,7 @@ class serializer
                     }
 
                     // last element
-                    assert(i != val.m_value.object->cend());
+                    assert(i != val.m_value.object ().cend());
                     o->write_characters(indent_string.c_str(), new_indent);
                     o->write_character('\"');
                     dump_escaped(i->first);
@@ -6476,8 +6459,8 @@ class serializer
                     o->write_character('{');
 
                     // first n-1 elements
-                    auto i = val.m_value.object->cbegin();
-                    for (size_t cnt = 0; cnt < val.m_value.object->size() - 1; ++cnt, ++i)
+                    auto i = val.m_value.object ().cbegin();
+                    for (size_t cnt = 0; cnt < val.m_value.object ().size() - 1; ++cnt, ++i)
                     {
                         o->write_character('\"');
                         dump_escaped(i->first);
@@ -6487,7 +6470,7 @@ class serializer
                     }
 
                     // last element
-                    assert(i != val.m_value.object->cend());
+                    assert(i != val.m_value.object ().cend());
                     o->write_character('\"');
                     dump_escaped(i->first);
                     o->write_characters("\":", 2);
@@ -6501,7 +6484,7 @@ class serializer
 
             case value_t::array:
             {
-                if (val.m_value.array->empty())
+                if (val.m_value.array ().empty())
                 {
                     o->write_characters("[]", 2);
                     return;
@@ -6519,8 +6502,8 @@ class serializer
                     }
 
                     // first n-1 elements
-                    for (auto i = val.m_value.array->cbegin();
-                            i != val.m_value.array->cend() - 1; ++i)
+                    for (auto i = val.m_value.array ().cbegin();
+                            i != val.m_value.array ().cend() - 1; ++i)
                     {
                         o->write_characters(indent_string.c_str(), new_indent);
                         dump(*i, true, indent_step, new_indent);
@@ -6528,9 +6511,9 @@ class serializer
                     }
 
                     // last element
-                    assert(not val.m_value.array->empty());
+                    assert(not val.m_value.array ().empty());
                     o->write_characters(indent_string.c_str(), new_indent);
-                    dump(val.m_value.array->back(), true, indent_step, new_indent);
+                    dump(val.m_value.array ().back(), true, indent_step, new_indent);
 
                     o->write_character('\n');
                     o->write_characters(indent_string.c_str(), current_indent);
@@ -6541,16 +6524,16 @@ class serializer
                     o->write_character('[');
 
                     // first n-1 elements
-                    for (auto i = val.m_value.array->cbegin();
-                            i != val.m_value.array->cend() - 1; ++i)
+                    for (auto i = val.m_value.array ().cbegin();
+                            i != val.m_value.array ().cend() - 1; ++i)
                     {
                         dump(*i, false, indent_step, current_indent);
                         o->write_character(',');
                     }
 
                     // last element
-                    assert(not val.m_value.array->empty());
-                    dump(val.m_value.array->back(), false, indent_step, current_indent);
+                    assert(not val.m_value.array ().empty());
+                    dump(val.m_value.array ().back(), false, indent_step, current_indent);
 
                     o->write_character(']');
                 }
@@ -6561,14 +6544,14 @@ class serializer
             case value_t::string:
             {
                 o->write_character('\"');
-                dump_escaped(*val.m_value.string);
+                dump_escaped(val.m_value.string ());
                 o->write_character('\"');
                 return;
             }
 
             case value_t::boolean:
             {
-                if (val.m_value.boolean)
+                if (val.m_value.boolean ())
                 {
                     o->write_characters("true", 4);
                 }
@@ -6581,19 +6564,19 @@ class serializer
 
             case value_t::number_integer:
             {
-                dump_integer(val.m_value.number_integer);
+                dump_integer(val.m_value.number_integer ());
                 return;
             }
 
             case value_t::number_unsigned:
             {
-                dump_integer(val.m_value.number_unsigned);
+                dump_integer(val.m_value.number_unsigned ());
                 return;
             }
 
             case value_t::number_float:
             {
-                dump_float(val.m_value.number_float);
+                dump_float(val.m_value.number_float ());
                 return;
             }
 
@@ -7453,6 +7436,9 @@ struct json_value_base
   // ideally, this should not be needed later on.
   // the type can be checked by typeid and std::type_index.
   virtual value_t type() const noexcept = 0;
+
+  virtual void copy_to (void* out) const = 0;
+  virtual void move_to (void* out) = 0;
 };
 
 class json_value_null : public json_value_base
@@ -7465,6 +7451,9 @@ public:
   virtual const char* type_name() const noexcept { return "null"; }
 
   virtual value_t type() const noexcept override { return value_t::null; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_null (); }
+  virtual void move_to (void* out) override { new (out) json_value_null (); }
 };
 
 class json_value_disarded : public json_value_null
@@ -7472,6 +7461,9 @@ class json_value_disarded : public json_value_null
 public:
   virtual const char* type_name() const noexcept { return "discarded"; }
   virtual value_t type() const noexcept override { return value_t::discarded; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_disarded (); }
+  virtual void move_to (void* out) override { new (out) json_value_disarded (); }
 };
 
 template <typename T> class json_value_primitive : public json_value_base
@@ -7479,6 +7471,7 @@ template <typename T> class json_value_primitive : public json_value_base
 public:
   using value_type = T;
 
+  json_value_primitive (void) noexcept { }
   explicit json_value_primitive (value_type val) noexcept : m_value (val) { }
 
   virtual bool empty() const noexcept override { return false; }
@@ -7502,6 +7495,12 @@ public:
 	       : value_t::number_integer;
   }
 
+  value_type& value (void) { return m_value; }
+  const value_type& value (void) const { return m_value; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_primitive (value ()); }
+  virtual void move_to (void* out) override { new (out) json_value_primitive (value ()); }
+
 private:
   value_type m_value = { };
 };
@@ -7516,6 +7515,7 @@ class json_value_string : public json_value_base
 public:
   using value_type = std::string;
 
+  json_value_string (void) { }
   explicit json_value_string (const std::string& val) : m_value (val) { }
   explicit json_value_string (std::string&& val) : m_value (std::move (val)) { }
   explicit json_value_string (const char* val) : m_value (val) { }
@@ -7530,6 +7530,12 @@ public:
 
   virtual value_t type() const noexcept override { return value_t::string; }
 
+  value_type& value (void) { return m_value; }
+  const value_type& value (void) const { return m_value; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_string (value ()); }
+  virtual void move_to (void* out) override { new (out) json_value_string (std::move (m_value)); }
+
 private:
   value_type m_value;
 };
@@ -7540,6 +7546,7 @@ class json_value_array : public json_value_base
 public:
   using value_type = ArrayType;
 
+  json_value_array (void) { }
   explicit json_value_array (const value_type& val) : m_value (val) { }
   explicit json_value_array (value_type&& val) : m_value (std::move (val)) { }
   // ... other vector ctor variants ...
@@ -7552,6 +7559,12 @@ public:
 
   virtual value_t type() const noexcept override { return value_t::array; }
 
+  value_type& value (void) { return m_value; }
+  const value_type& value (void) const { return m_value; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_array (value ()); }
+  virtual void move_to (void* out) override { new (out) json_value_array (std::move (m_value)); }
+
 private:
   value_type m_value;
 };
@@ -7562,6 +7575,7 @@ class json_value_object : public json_value_base
 public:
   using value_type = ObjectType;
 
+  json_value_object (void) { }
   explicit json_value_object (const value_type& val) : m_value (val) { }
   explicit json_value_object (value_type&& val) : m_value (std::move (val)) { }
 
@@ -7573,10 +7587,15 @@ public:
 
   virtual value_t type() const noexcept override { return value_t::object; }
 
+  value_type& value (void) { return m_value; }
+  const value_type& value (void) const { return m_value; }
+
+  virtual void copy_to (void* out) const override { new (out) json_value_object (value ()); }
+  virtual void move_to (void* out) override { new (out) json_value_object (std::move (m_value)); }
+
 private:
   value_type m_value;
 };
-
 
 NLOHMANN_BASIC_JSON_TPL_DECLARATION
 class basic_json
@@ -8208,20 +8227,19 @@ class basic_json
     /// @}
 
   private:
-
-    /// helper for exception-safe object creation
-    template<typename T, typename... Args>
-    static T* create(Args&& ... args)
+    static constexpr std::size_t max (std::size_t a, std::size_t b)
     {
-        AllocatorType<T> alloc;
-        auto deleter = [&](T * object)
-        {
-            alloc.deallocate(object, 1);
-        };
-        std::unique_ptr<T, decltype(deleter)> object(alloc.allocate(1), deleter);
-        alloc.construct(object.get(), std::forward<Args>(args)...);
-        assert(object != nullptr);
-        return object.release();
+      return a > b ? a : b;
+    }
+
+    static constexpr std::size_t max_json_value_size (void)
+    {
+      return max (
+        max (max (sizeof (json_value_null), sizeof (json_value_boolean)),
+             max (sizeof (json_value_number_integer), sizeof (json_value_number_unsigned))),
+
+        max (max (sizeof (json_value_number_float), sizeof (json_value_string)),
+             max (sizeof (json_value_array<array_t>), sizeof (json_value_object<object_t>))));
     }
 
     ////////////////////////
@@ -8252,114 +8270,101 @@ class basic_json
 
     @since version 1.0.0
     */
-    union json_value
+
+    struct json_value
     {
-        /// object (stored with pointer to save storage)
-        object_t* object;
-        /// array (stored with pointer to save storage)
-        array_t* array;
-        /// string (stored with pointer to save storage)
-        string_t* string;
-        /// boolean
-        boolean_t boolean;
-        /// number (integer)
-        number_integer_t number_integer;
-        /// number (unsigned integer)
-        number_unsigned_t number_unsigned;
-        /// number (floating-point)
-        number_float_t number_float;
+      typename std::aligned_storage<max_json_value_size ()>::type m_storage[1];
 
-        /// default constructor (for null values)
-        json_value() = default;
-        /// constructor for booleans
-        json_value(boolean_t v) noexcept : boolean(v) {}
-        /// constructor for numbers (integer)
-        json_value(number_integer_t v) noexcept : number_integer(v) {}
-        /// constructor for numbers (unsigned)
-        json_value(number_unsigned_t v) noexcept : number_unsigned(v) {}
-        /// constructor for numbers (floating-point)
-        json_value(number_float_t v) noexcept : number_float(v) {}
-        /// constructor for empty values of a given type
-        json_value(value_t t)
+      json_value () { new (m_storage) json_value_null (); }
+      json_value (boolean_t v) noexcept { new (m_storage) json_value_boolean (v); }
+      json_value (number_integer_t v) noexcept { new (m_storage) json_value_number_integer (v); }
+      json_value (number_unsigned_t v) noexcept { new (m_storage) json_value_number_unsigned (v); }
+      json_value (number_float_t v) noexcept { new (m_storage) json_value_number_float (v); }
+      json_value (const string_t& v) { new (m_storage) json_value_string (v); }
+      json_value (string_t&& v) { new (m_storage) json_value_string (std::move (v)); }
+
+      json_value (const json_value& other) { other.as<json_value_base> ().copy_to (m_storage); }
+
+      json_value (json_value&& other)
+      {
+        other.as<json_value_base> ().move_to (m_storage);
+        other.as<json_value_base> ().~json_value_base ();
+        new (other.m_storage) json_value_null ();
+      }
+
+      json_value(value_t t)
+      {
+        switch (t)
         {
-            switch (t)
-            {
-                case value_t::object:
-                {
-                    object = create<object_t>();
-                    break;
-                }
-
-                case value_t::array:
-                {
-                    array = create<array_t>();
-                    break;
-                }
-
-                case value_t::string:
-                {
-                    string = create<string_t>("");
-                    break;
-                }
-
-                case value_t::boolean:
-                {
-                    boolean = boolean_t(false);
-                    break;
-                }
-
-                case value_t::number_integer:
-                {
-                    number_integer = number_integer_t(0);
-                    break;
-                }
-
-                case value_t::number_unsigned:
-                {
-                    number_unsigned = number_unsigned_t(0);
-                    break;
-                }
-
-                case value_t::number_float:
-                {
-                    number_float = number_float_t(0.0);
-                    break;
-                }
-
-                case value_t::null:
-                {
-                    break;
-                }
-
-                default:
-                {
-                    if (JSON_UNLIKELY(t == value_t::null))
-                    {
-                        JSON_THROW(other_error::create(500, "961c151d2e87f2686a955a9be24d316f1362bf21 2.1.1")); // LCOV_EXCL_LINE
-                    }
-                    break;
-                }
-            }
+          case value_t::object: new (m_storage) json_value_object<object_t> (); break;
+          case value_t::array: new (m_storage) json_value_array<array_t> (); break;
+          case value_t::string: new (m_storage) json_value_string (); break;
+          case value_t::boolean: new (m_storage) json_value_boolean (); break;
+          case value_t::number_integer: new (m_storage) json_value_number_integer (); break;
+          case value_t::number_unsigned: new (m_storage) json_value_number_unsigned (); break;
+          case value_t::number_float: new (m_storage) json_value_number_float (); break;
+          case value_t::null: new (m_storage) json_value_null (); break;
+          default:
+            JSON_THROW(other_error::create(500, "961c151d2e87f2686a955a9be24d316f1362bf21 2.1.1")); // LCOV_EXCL_LINE
         }
+      }
 
-        /// constructor for strings
-        json_value(const string_t& value)
+      ~json_value (void)
+      {
+        as<json_value_base> ().~json_value_base ();
+      }
+
+      json_value& operator = (const json_value& other)
+      {
+        if (this != &other)
         {
-            string = create<string_t>(value);
+          as<json_value_base> ().~json_value_base ();
+          other.as<json_value_base> ().copy_to (m_storage);
         }
+        return *this;
+      }
 
-        /// constructor for objects
-        json_value(const object_t& value)
+      json_value& operator = (json_value&& other)
+      {
+        if (this != &other)
         {
-            object = create<object_t>(value);
+          as<json_value_base> ().~json_value_base ();
+          other.as<json_value_base> ().move_to (m_storage);
+          other.as<json_value_base> ().~json_value_base ();
+          new (other.m_storage) json_value_null ();
         }
+        return *this;
+      }
 
-        /// constructor for arrays
-        json_value(const array_t& value)
-        {
-            array = create<array_t>(value);
-        }
+      template <typename T> T& as (void) noexcept { return *(T*)m_storage; }
+      template <typename T> const T& as (void) const noexcept { return *(const T*)m_storage; }
+
+      object_t& object (void) { return as<json_value_object<object_t>> ().value (); }
+      const object_t& object (void) const { return as<json_value_object<object_t>> ().value (); }
+
+      array_t& array (void) { return as<json_value_array<array_t>> ().value (); }
+      const array_t& array (void) const { return as<json_value_array<array_t>> ().value (); }
+
+      string_t& string (void) { return as<json_value_string> ().value (); }
+      const string_t& string (void) const { return as<json_value_string> ().value (); }
+
+      boolean_t& boolean (void) { return as<json_value_boolean> ().value (); }
+      const boolean_t& boolean (void) const { return as<json_value_boolean> ().value (); }
+
+      number_integer_t& number_integer (void) { return as<json_value_number_integer> ().value (); }
+      const number_integer_t& number_integer (void) const { return as<json_value_number_integer> ().value (); }
+
+      number_unsigned_t& number_unsigned (void) { return as<json_value_number_unsigned> ().value (); }
+      const number_unsigned_t& number_unsigned (void) const { return as<json_value_number_unsigned> ().value (); }
+
+      number_float_t& number_float (void) { return as<json_value_number_float> ().value (); }
+      const number_float_t& number_float (void) const { return as<json_value_number_float> ().value (); }
+
+      value_t type (void) const { return as<json_value_base> ().type (); }
     };
+
+    // static_assert (sizeof (json_value) == 64, ""); // on x86_64
+
 
     /*!
     @brief checks the class invariants
@@ -8372,9 +8377,9 @@ class basic_json
     */
     void assert_invariant() const
     {
-        assert(type () != value_t::object or m_value.object != nullptr);
-        assert(type () != value_t::array or m_value.array != nullptr);
-        assert(type () != value_t::string or m_value.string != nullptr);
+//        assert(type () != value_t::object or m_value.object != nullptr);
+//        assert(type () != value_t::array or m_value.array != nullptr);
+//        assert(type () != value_t::string or m_value.string != nullptr);
     }
 
   public:
@@ -8473,7 +8478,7 @@ class basic_json
     @since version 1.0.0
     */
     basic_json(const value_t v)
-        : m_type(v), m_value(v)
+        : m_value(v)
     {
         assert_invariant();
     }
@@ -8671,19 +8676,18 @@ class basic_json
         if (is_an_object)
         {
             // the initializer list is a list of pairs -> create object
-            m_type = value_t::object;
             m_value = value_t::object;
 
             std::for_each(init.begin(), init.end(), [this](const basic_json & element)
             {
-                m_value.object->emplace(*(element[0].m_value.string), element[1]);
+                object ().emplace(element[0].m_value.string (), element[1]);
             });
         }
         else
         {
             // the initializer list describes an array -> create array
-            m_type = value_t::array;
-            m_value.array = create<array_t>(init);
+            m_value = value_t::array;
+            array () = init;
         }
 
         assert_invariant();
@@ -8789,9 +8793,9 @@ class basic_json
     @since version 1.0.0
     */
     basic_json(size_type cnt, const basic_json& val)
-        : m_type(value_t::array)
+        : m_value(value_t::array)
     {
-        m_value.array = create<array_t>(cnt, val);
+        array () = { cnt, val };
         assert_invariant();
     }
 
@@ -8852,10 +8856,10 @@ class basic_json
         }
 
         // copy type from first iterator
-        m_type = first.m_object->m_type;
+        const value_t type = first.m_object->type ();
 
         // check if iterator range is complete for primitive values
-        switch (m_type)
+        switch (type)
         {
             case value_t::boolean:
             case value_t::number_float:
@@ -8876,49 +8880,49 @@ class basic_json
             }
         }
 
-        switch (m_type)
+        switch (type)
         {
             case value_t::number_integer:
             {
-                m_value.number_integer = first.m_object->m_value.number_integer;
+                m_value = first.m_object->m_value.number_integer ();
                 break;
             }
 
             case value_t::number_unsigned:
             {
-                m_value.number_unsigned = first.m_object->m_value.number_unsigned;
+                m_value = first.m_object->m_value.number_unsigned ();
                 break;
             }
 
             case value_t::number_float:
             {
-                m_value.number_float = first.m_object->m_value.number_float;
+                m_value = first.m_object->m_value.number_float ();
                 break;
             }
 
             case value_t::boolean:
             {
-                m_value.boolean = first.m_object->m_value.boolean;
+                m_value = first.m_object->m_value.boolean ();
                 break;
             }
 
             case value_t::string:
             {
-                m_value = *first.m_object->m_value.string;
+                m_value = first.m_object->m_value.string ();
                 break;
             }
 
             case value_t::object:
             {
-                m_value.object = create<object_t>(first.m_it.object_iterator,
-                                                  last.m_it.object_iterator);
+                m_value.object = { first.m_it.object_iterator,
+                                   last.m_it.object_iterator };
                 break;
             }
 
             case value_t::array:
             {
-                m_value.array = create<array_t>(first.m_it.array_iterator,
-                                                last.m_it.array_iterator);
+                m_value.array =  { first.m_it.array_iterator,
+                                   last.m_it.array_iterator };
                 break;
             }
 
@@ -8958,61 +8962,10 @@ class basic_json
     @since version 1.0.0
     */
     basic_json(const basic_json& other)
-        : m_type(other.m_type)
+        : m_value(other.m_value)
     {
         // check of passed value is valid
         other.assert_invariant();
-
-        switch (m_type)
-        {
-            case value_t::object:
-            {
-                m_value = *other.m_value.object;
-                break;
-            }
-
-            case value_t::array:
-            {
-                m_value = *other.m_value.array;
-                break;
-            }
-
-            case value_t::string:
-            {
-                m_value = *other.m_value.string;
-                break;
-            }
-
-            case value_t::boolean:
-            {
-                m_value = other.m_value.boolean;
-                break;
-            }
-
-            case value_t::number_integer:
-            {
-                m_value = other.m_value.number_integer;
-                break;
-            }
-
-            case value_t::number_unsigned:
-            {
-                m_value = other.m_value.number_unsigned;
-                break;
-            }
-
-            case value_t::number_float:
-            {
-                m_value = other.m_value.number_float;
-                break;
-            }
-
-            default:
-            {
-                break;
-            }
-        }
-
         assert_invariant();
     }
 
@@ -9035,16 +8988,10 @@ class basic_json
     @since version 1.0.0
     */
     basic_json(basic_json&& other) noexcept
-        : m_type(std::move(other.m_type)),
-          m_value(std::move(other.m_value))
+        : m_value(std::move(other.m_value))
     {
         // check that passed value is valid
         other.assert_invariant();
-
-        // invalidate payload
-        other.m_type = value_t::null;
-        other.m_value = {};
-
         assert_invariant();
     }
 
@@ -9071,22 +9018,13 @@ class basic_json
 
     @since version 1.0.0
     */
-    reference& operator=(basic_json other) noexcept (
-        std::is_nothrow_move_constructible<value_t>::value and
-        std::is_nothrow_move_assignable<value_t>::value and
-        std::is_nothrow_move_constructible<json_value>::value and
-        std::is_nothrow_move_assignable<json_value>::value
-    )
+
+    basic_json& operator = (const basic_json& other)
     {
-        // check that passed value is valid
-        other.assert_invariant();
-
-        using std::swap;
-        swap(m_type, other.m_type);
-        swap(m_value, other.m_value);
-
-        assert_invariant();
-        return *this;
+      other.assert_invariant();
+      m_value = other.m_value;
+      assert_invariant();
+      return *this;
     }
 
     /*!
@@ -9107,39 +9045,6 @@ class basic_json
     ~basic_json()
     {
         assert_invariant();
-
-        switch (m_type)
-        {
-            case value_t::object:
-            {
-                AllocatorType<object_t> alloc;
-                alloc.destroy(m_value.object);
-                alloc.deallocate(m_value.object, 1);
-                break;
-            }
-
-            case value_t::array:
-            {
-                AllocatorType<array_t> alloc;
-                alloc.destroy(m_value.array);
-                alloc.deallocate(m_value.array, 1);
-                break;
-            }
-
-            case value_t::string:
-            {
-                AllocatorType<string_t> alloc;
-                alloc.destroy(m_value.string);
-                alloc.deallocate(m_value.string, 1);
-                break;
-            }
-
-            default:
-            {
-                // all other types need no specific destructor
-                break;
-            }
-        }
     }
 
     /// @}
@@ -9215,7 +9120,7 @@ class basic_json
     */
     constexpr value_t type() const noexcept
     {
-        return m_type;
+        return m_value.type ();
     }
 
     /*!
@@ -9601,43 +9506,43 @@ class basic_json
     /// get a pointer to the value (string)
     constexpr const string_t* get_impl_ptr(const string_t* /*unused*/) const noexcept
     {
-        return is_string() ? m_value.string : nullptr;
+        return is_string() ? &m_value.string () : nullptr;
     }
 
     /// get a pointer to the value (boolean)
     boolean_t* get_impl_ptr(boolean_t* /*unused*/) noexcept
     {
-        return is_boolean() ? &m_value.boolean : nullptr;
+        return is_boolean() ? &m_value.boolean () : nullptr;
     }
 
     /// get a pointer to the value (boolean)
     constexpr const boolean_t* get_impl_ptr(const boolean_t* /*unused*/) const noexcept
     {
-        return is_boolean() ? &m_value.boolean : nullptr;
+        return is_boolean() ? &m_value.boolean () : nullptr;
     }
 
     /// get a pointer to the value (integer number)
     number_integer_t* get_impl_ptr(number_integer_t* /*unused*/) noexcept
     {
-        return is_number_integer() ? &m_value.number_integer : nullptr;
+        return is_number_integer() ? &m_value.number_integer () : nullptr;
     }
 
     /// get a pointer to the value (integer number)
     constexpr const number_integer_t* get_impl_ptr(const number_integer_t* /*unused*/) const noexcept
     {
-        return is_number_integer() ? &m_value.number_integer : nullptr;
+        return is_number_integer() ? &m_value.number_integer () : nullptr;
     }
 
     /// get a pointer to the value (unsigned number)
     number_unsigned_t* get_impl_ptr(number_unsigned_t* /*unused*/) noexcept
     {
-        return is_number_unsigned() ? &m_value.number_unsigned : nullptr;
+        return is_number_unsigned() ? &m_value.number_unsigned () : nullptr;
     }
 
     /// get a pointer to the value (unsigned number)
     constexpr const number_unsigned_t* get_impl_ptr(const number_unsigned_t* /*unused*/) const noexcept
     {
-        return is_number_unsigned() ? &m_value.number_unsigned : nullptr;
+        return is_number_unsigned() ? &m_value.number_unsigned () : nullptr;
     }
 
     /// get a pointer to the value (floating-point number)
@@ -9649,7 +9554,7 @@ class basic_json
     /// get a pointer to the value (floating-point number)
     constexpr const number_float_t* get_impl_ptr(const number_float_t* /*unused*/) const noexcept
     {
-        return is_number_float() ? &m_value.number_float : nullptr;
+        return is_number_float() ? &m_value.number_float () : nullptr;
     }
 
     /*!
@@ -10270,8 +10175,7 @@ class basic_json
         // implicitly convert null value to an empty array
         if (is_null())
         {
-            m_type = value_t::array;
-            m_value.array = create<array_t>();
+            m_value = value_t::array;
             assert_invariant();
         }
 
@@ -10279,14 +10183,14 @@ class basic_json
         if (is_array())
         {
             // fill up array with null values if given idx is outside range
-            if (idx >= m_value.array->size())
+            if (idx >= m_value.array ().size())
             {
-                m_value.array->insert(m_value.array->end(),
-                                      idx - m_value.array->size() + 1,
-                                      basic_json());
+                m_value.array ().insert(m_value.array ().end(),
+                                        idx - m_value.array ().size() + 1,
+                                        basic_json());
             }
 
-            return m_value.array->operator[](idx);
+            return m_value.array ()[idx];
         }
 
         JSON_THROW(type_error::create(305, "cannot use operator[] with " + type_name()));
@@ -10316,7 +10220,7 @@ class basic_json
         // const operator[] only works for arrays
         if (is_array())
         {
-            return m_value.array->operator[](idx);
+            return m_value.array ()[idx];
         }
 
         JSON_THROW(type_error::create(305, "cannot use operator[] with " + type_name()));
@@ -10354,15 +10258,14 @@ class basic_json
         // implicitly convert null value to an empty object
         if (is_null())
         {
-            m_type = value_t::object;
-            m_value.object = create<object_t>();
+            m_value = value_t::object;
             assert_invariant();
         }
 
         // operator[] only works for objects
         if (is_object())
         {
-            return m_value.object->operator[](key);
+            return m_value.object ()[key];
         }
 
         JSON_THROW(type_error::create(305, "cannot use operator[] with " + type_name()));
@@ -10443,7 +10346,6 @@ class basic_json
         // implicitly convert null to object
         if (is_null())
         {
-            m_type = value_t::object;
             m_value = value_t::object;
             assert_invariant();
         }
@@ -10451,7 +10353,7 @@ class basic_json
         // at only works for objects
         if (is_object())
         {
-            return m_value.object->operator[](key);
+            return m_value.object ()[key];
         }
 
         JSON_THROW(type_error::create(305, "cannot use operator[] with " + type_name()));
@@ -10817,7 +10719,7 @@ class basic_json
                     m_value.string = nullptr;
                 }
 
-                m_type = value_t::null;
+                m_value = value_t::null;
                 assert_invariant();
                 break;
             }
@@ -10924,7 +10826,7 @@ class basic_json
                     m_value.string = nullptr;
                 }
 
-                m_type = value_t::null;
+                m_value = value_t::null;
                 assert_invariant();
                 break;
             }
@@ -11478,35 +11380,7 @@ class basic_json
 
     @since version 1.0.0
     */
-    bool empty() const noexcept
-    {
-        switch (type ())
-        {
-            case value_t::null:
-            {
-                // null values are empty
-                return true;
-            }
-
-            case value_t::array:
-            {
-                // delegate call to array_t::empty()
-                return m_value.array->empty();
-            }
-
-            case value_t::object:
-            {
-                // delegate call to object_t::empty()
-                return m_value.object->empty();
-            }
-
-            default:
-            {
-                // all other types are nonempty
-                return false;
-            }
-        }
-    }
+    bool empty() const noexcept { return m_value.template as<json_value_base> ().empty (); }
 
     /*!
     @brief returns the number of elements
@@ -11546,35 +11420,7 @@ class basic_json
 
     @since version 1.0.0
     */
-    size_type size() const noexcept
-    {
-        switch (type ())
-        {
-            case value_t::null:
-            {
-                // null values are empty
-                return 0;
-            }
-
-            case value_t::array:
-            {
-                // delegate call to array_t::size()
-                return m_value.array->size();
-            }
-
-            case value_t::object:
-            {
-                // delegate call to object_t::size()
-                return m_value.object->size();
-            }
-
-            default:
-            {
-                // all other types have size 1
-                return 1;
-            }
-        }
-    }
+    size_type size() const noexcept { return m_value.template as<json_value_base> ().size (); }
 
     /*!
     @brief returns the maximum possible number of elements
@@ -11612,29 +11458,7 @@ class basic_json
 
     @since version 1.0.0
     */
-    size_type max_size() const noexcept
-    {
-        switch (type ())
-        {
-            case value_t::array:
-            {
-                // delegate call to array_t::max_size()
-                return m_value.array->max_size();
-            }
-
-            case value_t::object:
-            {
-                // delegate call to object_t::max_size()
-                return m_value.object->max_size();
-            }
-
-            default:
-            {
-                // all other types have max_size() == size()
-                return size();
-            }
-        }
-    }
+    size_type max_size() const noexcept { return m_value.template as<json_value_base> ().max_size (); }
 
     /// @}
 
@@ -11668,58 +11492,7 @@ class basic_json
 
     @since version 1.0.0
     */
-    void clear() noexcept
-    {
-        switch (type ())
-        {
-            case value_t::number_integer:
-            {
-                m_value.number_integer = 0;
-                break;
-            }
-
-            case value_t::number_unsigned:
-            {
-                m_value.number_unsigned = 0;
-                break;
-            }
-
-            case value_t::number_float:
-            {
-                m_value.number_float = 0.0;
-                break;
-            }
-
-            case value_t::boolean:
-            {
-                m_value.boolean = false;
-                break;
-            }
-
-            case value_t::string:
-            {
-                m_value.string->clear();
-                break;
-            }
-
-            case value_t::array:
-            {
-                m_value.array->clear();
-                break;
-            }
-
-            case value_t::object:
-            {
-                m_value.object->clear();
-                break;
-            }
-
-            default:
-            {
-                break;
-            }
-        }
-    }
+    void clear() noexcept { m_value.template as<json_value_base> ().clear (); }
 
     /*!
     @brief add an object to an array
@@ -11752,15 +11525,14 @@ class basic_json
         // transform null object into an array
         if (is_null())
         {
-            m_type = value_t::array;
             m_value = value_t::array;
             assert_invariant();
         }
 
         // add element to array (move semantics)
-        m_value.array->push_back(std::move(val));
+        m_value.array ().push_back(std::move(val));
         // invalidate object
-        val.m_type = value_t::null;
+        val.m_value = value_t::null;
     }
 
     /*!
@@ -11788,13 +11560,12 @@ class basic_json
         // transform null object into an array
         if (is_null())
         {
-            m_type = value_t::array;
             m_value = value_t::array;
             assert_invariant();
         }
 
         // add element to array
-        m_value.array->push_back(val);
+        m_value.array ().push_back(val);
     }
 
     /*!
@@ -11838,13 +11609,12 @@ class basic_json
         // transform null object into an object
         if (is_null())
         {
-            m_type = value_t::object;
             m_value = value_t::object;
             assert_invariant();
         }
 
         // add element to array
-        m_value.object->insert(val);
+        m_value.object ().insert(val);
     }
 
     /*!
@@ -11938,13 +11708,12 @@ class basic_json
         // transform null object into an array
         if (is_null())
         {
-            m_type = value_t::array;
             m_value = value_t::array;
             assert_invariant();
         }
 
         // add element to array (perfect forwarding)
-        m_value.array->emplace_back(std::forward<Args>(args)...);
+        m_value.array ().emplace_back(std::forward<Args>(args)...);
     }
 
     /*!
@@ -11986,13 +11755,12 @@ class basic_json
         // transform null object into an object
         if (is_null())
         {
-            m_type = value_t::object;
             m_value = value_t::object;
             assert_invariant();
         }
 
         // add element to array (perfect forwarding)
-        auto res = m_value.object->emplace(std::forward<Args>(args)...);
+        auto res = m_value.object ().emplace(std::forward<Args>(args)...);
         // create result iterator and set iterator to the result of emplace
         auto it = begin();
         it.m_it.object_iterator = res.first;
@@ -12274,7 +12042,6 @@ class basic_json
         std::is_nothrow_move_assignable<json_value>::value
     )
     {
-        std::swap(m_type, other.m_type);
         std::swap(m_value, other.m_value);
         assert_invariant();
     }
@@ -12423,11 +12190,11 @@ class basic_json
             {
                 case value_t::array:
                 {
-                    return *lhs.m_value.array == *rhs.m_value.array;
+                    return lhs.m_value.array () == rhs.m_value.array ();
                 }
                 case value_t::object:
                 {
-                    return *lhs.m_value.object == *rhs.m_value.object;
+                    return lhs.m_value.object () == rhs.m_value.object ();
                 }
                 case value_t::null:
                 {
@@ -12435,23 +12202,23 @@ class basic_json
                 }
                 case value_t::string:
                 {
-                    return *lhs.m_value.string == *rhs.m_value.string;
+                    return lhs.m_value.string () == rhs.m_value.string ();
                 }
                 case value_t::boolean:
                 {
-                    return lhs.m_value.boolean == rhs.m_value.boolean;
+                    return lhs.m_value.boolean () == rhs.m_value.boolean ();
                 }
                 case value_t::number_integer:
                 {
-                    return lhs.m_value.number_integer == rhs.m_value.number_integer;
+                    return lhs.m_value.number_integer () == rhs.m_value.number_integer ();
                 }
                 case value_t::number_unsigned:
                 {
-                    return lhs.m_value.number_unsigned == rhs.m_value.number_unsigned;
+                    return lhs.m_value.number_unsigned () == rhs.m_value.number_unsigned ();
                 }
                 case value_t::number_float:
                 {
-                    return lhs.m_value.number_float == rhs.m_value.number_float;
+                    return lhs.m_value.number_float () == rhs.m_value.number_float ();
                 }
                 default:
                 {
@@ -12461,27 +12228,27 @@ class basic_json
         }
         else if (lhs_type == value_t::number_integer and rhs_type == value_t::number_float)
         {
-            return static_cast<number_float_t>(lhs.m_value.number_integer) == rhs.m_value.number_float;
+            return static_cast<number_float_t>(lhs.m_value.number_integer ()) == rhs.m_value.number_float ();
         }
         else if (lhs_type == value_t::number_float and rhs_type == value_t::number_integer)
         {
-            return lhs.m_value.number_float == static_cast<number_float_t>(rhs.m_value.number_integer);
+            return lhs.m_value.number_float () == static_cast<number_float_t>(rhs.m_value.number_integer ());
         }
         else if (lhs_type == value_t::number_unsigned and rhs_type == value_t::number_float)
         {
-            return static_cast<number_float_t>(lhs.m_value.number_unsigned) == rhs.m_value.number_float;
+            return static_cast<number_float_t>(lhs.m_value.number_unsigned ()) == rhs.m_value.number_float ();
         }
         else if (lhs_type == value_t::number_float and rhs_type == value_t::number_unsigned)
         {
-            return lhs.m_value.number_float == static_cast<number_float_t>(rhs.m_value.number_unsigned);
+            return lhs.m_value.number_float () == static_cast<number_float_t>(rhs.m_value.number_unsigned ());
         }
         else if (lhs_type == value_t::number_unsigned and rhs_type == value_t::number_integer)
         {
-            return static_cast<number_integer_t>(lhs.m_value.number_unsigned) == rhs.m_value.number_integer;
+            return static_cast<number_integer_t>(lhs.m_value.number_unsigned ()) == rhs.m_value.number_integer ();
         }
         else if (lhs_type == value_t::number_integer and rhs_type == value_t::number_unsigned)
         {
-            return lhs.m_value.number_integer == static_cast<number_integer_t>(rhs.m_value.number_unsigned);
+            return lhs.m_value.number_integer () == static_cast<number_integer_t>(rhs.m_value.number_unsigned ());
         }
 
         return false;
@@ -12587,11 +12354,11 @@ class basic_json
             {
                 case value_t::array:
                 {
-                    return (*lhs.m_value.array) < (*rhs.m_value.array);
+                    return lhs.m_value.array () < rhs.m_value.array ();
                 }
                 case value_t::object:
                 {
-                    return *lhs.m_value.object < *rhs.m_value.object;
+                    return lhs.m_value.object () < rhs.m_value.object ();
                 }
                 case value_t::null:
                 {
@@ -12599,23 +12366,23 @@ class basic_json
                 }
                 case value_t::string:
                 {
-                    return *lhs.m_value.string < *rhs.m_value.string;
+                    return lhs.m_value.string () < rhs.m_value.string ();
                 }
                 case value_t::boolean:
                 {
-                    return lhs.m_value.boolean < rhs.m_value.boolean;
+                    return lhs.m_value.boolean () < rhs.m_value.boolean ();
                 }
                 case value_t::number_integer:
                 {
-                    return lhs.m_value.number_integer < rhs.m_value.number_integer;
+                    return lhs.m_value.number_integer () < rhs.m_value.number_integer ();
                 }
                 case value_t::number_unsigned:
                 {
-                    return lhs.m_value.number_unsigned < rhs.m_value.number_unsigned;
+                    return lhs.m_value.number_unsigned () < rhs.m_value.number_unsigned ();
                 }
                 case value_t::number_float:
                 {
-                    return lhs.m_value.number_float < rhs.m_value.number_float;
+                    return lhs.m_value.number_float () < rhs.m_value.number_float ();
                 }
                 default:
                 {
@@ -12625,27 +12392,27 @@ class basic_json
         }
         else if (lhs_type == value_t::number_integer and rhs_type == value_t::number_float)
         {
-            return static_cast<number_float_t>(lhs.m_value.number_integer) < rhs.m_value.number_float;
+            return static_cast<number_float_t>(lhs.m_value.number_integer ()) < rhs.m_value.number_float ();
         }
         else if (lhs_type == value_t::number_float and rhs_type == value_t::number_integer)
         {
-            return lhs.m_value.number_float < static_cast<number_float_t>(rhs.m_value.number_integer);
+            return lhs.m_value.number_float () < static_cast<number_float_t>(rhs.m_value.number_integer ());
         }
         else if (lhs_type == value_t::number_unsigned and rhs_type == value_t::number_float)
         {
-            return static_cast<number_float_t>(lhs.m_value.number_unsigned) < rhs.m_value.number_float;
+            return static_cast<number_float_t>(lhs.m_value.number_unsigned ()) < rhs.m_value.number_float ();
         }
         else if (lhs_type == value_t::number_float and rhs_type == value_t::number_unsigned)
         {
-            return lhs.m_value.number_float < static_cast<number_float_t>(rhs.m_value.number_unsigned);
+            return lhs.m_value.number_float () < static_cast<number_float_t>(rhs.m_value.number_unsigned ());
         }
         else if (lhs_type == value_t::number_integer and rhs_type == value_t::number_unsigned)
         {
-            return lhs.m_value.number_integer < static_cast<number_integer_t>(rhs.m_value.number_unsigned);
+            return lhs.m_value.number_integer () < static_cast<number_integer_t>(rhs.m_value.number_unsigned ());
         }
         else if (lhs_type == value_t::number_unsigned and rhs_type == value_t::number_integer)
         {
-            return static_cast<number_integer_t>(lhs.m_value.number_unsigned) < rhs.m_value.number_integer;
+            return static_cast<number_integer_t>(lhs.m_value.number_unsigned ()) < rhs.m_value.number_integer ();
         }
 
         // We only reach this line if we cannot compare values. In that case,
@@ -13232,37 +12999,12 @@ class basic_json
 
     @since version 1.0.0, public since 2.1.0
     */
-    std::string type_name() const
-    {
-        {
-            switch (m_type)
-            {
-                case value_t::null:
-                    return "null";
-                case value_t::object:
-                    return "object";
-                case value_t::array:
-                    return "array";
-                case value_t::string:
-                    return "string";
-                case value_t::boolean:
-                    return "boolean";
-                case value_t::discarded:
-                    return "discarded";
-                default:
-                    return "number";
-            }
-        }
-    }
-
+    std::string type_name() const { return m_value.template as<json_value_base> ().type_name (); }
 
   private:
     //////////////////////
     // member variables //
     //////////////////////
-
-    /// the type of the current element
-    value_t m_type = value_t::null;
 
     /// the value of the current element
     json_value m_value = {};
